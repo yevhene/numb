@@ -1,27 +1,98 @@
-# Numb
+# Why it works?
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.1.3.
+## Run
+```bash
+ng serve
+```
 
-## Development server
+## Demo
+![Demo](./demo/demo.gif)
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## Code
 
-## Code scaffolding
+### [Component](./src/app/app.component.ts)
+```typescript
+@Component({
+  selector: 'app-root',
+  template: `
+    <button (click)="nextNumber()">Next</button>
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+    <ul>
+      <li *ngFor="let number of numbers | async">{{number}}</li>
+    </ul>
+  `,
+})
+export class AppComponent {
+  numbers: Observable<number[]>;
 
-## Build
+  constructor(private numbersService: NumbersService) {
+    console.log('AppComponent#constructor');
+    this.numbers = this.numbersService.getNumbers();
+  }
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+  nextNumber() {
+    console.log('AppComponent#nextNumber');
+    this.numbersService.nextNumber();
+  }
+}
+```
 
-## Running unit tests
+### [Service](./src/app/numbers.service.ts)
+```typescript
+@Injectable({
+  providedIn: 'root'
+})
+export class NumbersService {
+  numbers: number[] = [1, 2, 3];
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+  getNumbers(): Observable<number[]> {
+    console.log('NumbersService#getNumbers');
+    return of(this.numbers);
+  }
 
-## Running end-to-end tests
+  nextNumber() {
+    console.log('NumbersService#nextNumber');
+    this.numbers.push(this.numbers.length + 1);
+  }
+}
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Question
+**Why it works?**
+1. When component initalized, it gets `Observable<number[]>` wrapped around
+array of numbers `[1, 2, 3]`, created with `of()`;
+2. When user clicks the button, new number is added to the array and it becomes
+`[1, 2, 3, 4]`;
+3. New number rendered. **But why?** Observable should know nothing about array
+changes. And it knows nothing. See other example:
 
-## Further help
+## Other example
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### [Code](./demo/other_example.js)
+```javascript
+import { of } from 'rxjs';
+
+const arr = [1, 2, 3];
+const obs = of(arr);
+
+console.log('Before subscribe');
+obs.subscribe(console.log);
+console.log('After subscribe');
+
+console.log('Before push');
+arr.push(4);
+console.log('After push');
+```
+
+### Result
+```bash
+$ node demo/other_example.js
+```
+
+```
+Before subscribe
+[ 1, 2, 3 ]
+After subscribe
+Before push
+After push
+```
